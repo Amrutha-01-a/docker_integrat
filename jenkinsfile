@@ -1,19 +1,39 @@
 pipeline {
     agent any
-    stages {
-        stage("Check Docker Version") {
+ stages {
+  stage('Docker Build and Tag') {
+           steps {
+              
+                sh 'docker build -t nginxtest:latest .' 
+                  sh 'docker tag nginxtest amrutha0102/dockerpipeline:latest'
+                sh 'docker tag nginxtest amrutha0102/dockerpipeline:$BUILD_NUMBER'
+               
+          }
+        }
+     
+  stage('Publish image to Docker Hub') {
+          
             steps {
-                sh "docker build -t nginxtest:latest ."
-                sh " docker nginxtest amrutha0102/dockerpipeline:latest"
-                sh " docker nginxtest amrutha0102/dockerpipeline:$BUILD_NUMBER"
+        withDockerRegistry([ credentialsId: "dockerhub-credentials", url: "" ]) {
+          sh  'docker push amrutha0102/dockerpipeline:latest'
+          sh  'docker push amrutha0102/dockerpipeline:$BUILD_NUMBER' 
+        }
+                  
+          }
+        }
+     
+      stage('Run Docker container on Jenkins Agent') {
+             
+            steps {
+                sh "docker run -d -p 4030:80 amrutha0102/dockerpipeline"
+ 
             }
         }
-        stage('publish to docker hub') {
+ stage('Run Docker container on remote hosts') {
+             
             steps {
-                WithDockerRegisrty([credentialsId: "dockerhub-credentials", url:""]){
-                    sh "docker push amrutha0102/dockerpipeline:latest"
-                    sh " docker push amrutha0102/dockerpipeline:$BUILD_NUMBER"
-                }
+                sh "docker -H ssh://jenkins@3.12.111.89 run -d -p 4001:80 amrutha0102/dockerpipeline"
+ 
             }
         }
     }

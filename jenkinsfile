@@ -1,0 +1,42 @@
+pipeline {
+    agent any
+    stages {
+        stage("Check Docker Version") {
+            steps {
+                sh "${DOCKER_HOME}/docker --version"
+            }
+        }
+        stage('Build Docker Image') {
+            steps {
+                sh "${DOCKER_HOME}/docker build -t newimage /opt/dockerF"
+            }
+        }
+        stage('Run Docker Container') {
+            steps {
+                sh "${DOCKER_HOME}/docker run newimage /opt/dockerF"
+            }
+        }
+        stage('List Docker Containers') {
+            steps {
+                sh "${DOCKER_HOME}/docker ps"
+            }
+        }
+        stage('Login to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', passwordVariable: 'DOCKERHUB_PASSWORD', usernameVariable: 'DOCKERHUB_USERNAME')]) {
+                    sh "${DOCKER_HOME}/docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD"
+                }
+            }
+        }
+        stage('Push image to Docker Hub') {
+            steps {
+                sh "${DOCKER_HOME}/docker push newimage amrutha0102/dockerpipeline"
+            }
+        }
+    }
+    post {
+        always {
+            sh "${DOCKER_HOME}/docker logout"
+        }
+    }
+}
